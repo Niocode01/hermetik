@@ -1,0 +1,44 @@
+// Information about where to find archived blocks. Returned as part of [`GetBlocksResult`].
+type ArchivedBlocks = record {
+  args : vec GetBlocksRequest;
+  callback : func (vec GetBlocksRequest) -> (GetBlocksResult) query;
+};
+// A block with an ID. Returned as part of [`GetBlocksResult`].
+type BlockWithId = record { id : nat; block : ICRC3Value };
+// The arguments for the
+// [ICRC-3 `icrc3_get_blocks`](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#icrc3_get_blocks)
+// endpoint.
+type GetBlocksRequest = record { start : nat; length : nat };
+// The result type for the
+// [ICRC-3 `icrc3_get_blocks`](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#icrc3_get_blocks)
+// endpoint.
+type GetBlocksResult = record {
+  log_length : nat;
+  blocks : vec BlockWithId;
+  archived_blocks : vec ArchivedBlocks;
+};
+// A value defined in [the ICRC-3 standard](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#value).
+type ICRC3Value = variant {
+  Int : int;
+  Map : vec record { text; ICRC3Value };
+  Nat : nat;
+  Blob : blob;
+  Text : text;
+  Array : vec ICRC3Value;
+};
+service : {
+  // Sirve los bloques archivados (A1-test). `access` lo llama vía el
+  // callback de `archived_blocks` cuando `blocks` viene vacío.
+  // Alias canónico `get_blocks` para que el callback pase el pin de método
+  // de `access` (run-4 F2): `mock_get_archived` queda como alias histórico.
+  get_blocks : (vec GetBlocksRequest) -> (GetBlocksResult) query;
+  icrc3_get_blocks : (vec GetBlocksRequest) -> (GetBlocksResult) query;
+  // Mueve un bloque a ARCHIVED para el test vivo A1: `icrc3_get_blocks`
+  // responde blocks=[] + callback al propio mock, y `access` debe seguirlo.
+  mock_archive_only : (nat64) -> ();
+  mock_clear : () -> ();
+  // Alias histórico del lector de archivados (run-3). Conservado para no
+  // romper harnesses viejos; el callback A1 usa el canónico `get_blocks`.
+  mock_get_archived : (vec GetBlocksRequest) -> (GetBlocksResult) query;
+  mock_set_block : (nat64, text, text, text, nat64) -> ();
+}

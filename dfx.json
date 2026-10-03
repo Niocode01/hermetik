@@ -1,0 +1,53 @@
+{
+  "canisters": {
+    "access": {
+      "type": "rust",
+      "package": "access",
+      "candid": "app/canisters/access/access.did",
+      "workspace": "."
+    },
+    "vault": {
+      "type": "motoko",
+      "main": "vault/main.mo",
+      "candid": "vault/vault.did"
+    },
+    "mock_ledger": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/mock_ledger.wasm",
+      "candid": "app/canisters/access/mock/icrc_mock_ledger/mock_ledger.did"
+    },
+    "frontend": {
+      "type": "assets",
+      "source": ["app/frontend/dist/"],
+      "dependencies": ["access", "vault"]
+    },
+    "internet_identity": {
+      "type": "custom",
+      "wasm": "https://github.com/dfinity/internet-identity/releases/download/release-2026-09-11/internet_identity_dev.wasm.gz",
+      "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2026-09-11/internet_identity.did",
+      "init_arg": "(opt record { dummy_auth = opt opt record { prompt_for_index = false }; related_origins = opt vec { \"http://localhost:5174\"; \"http://127.0.0.1:5174\" } })"
+    },
+    "internet_identity_frontend": {
+      "type": "custom",
+      "wasm": ".ii/internet_identity_frontend.wasm.gz",
+      "candid": ".ii/internet_identity_frontend.did",
+      "init_arg_file": ".ii/ii_frontend_init_arg.did"
+    }
+  },
+  "defaults": {
+    "build": {
+      "packtool": ""
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:4943",
+      "type": "ephemeral"
+    },
+    "ic": {
+      "providers": ["https://icp0.io", "https://ic0.app"],
+      "type": "persistent"
+    }
+  },
+  "version": 1
+}

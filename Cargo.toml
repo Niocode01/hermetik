@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "app/canisters/access",
+  "app/canisters/access/mock/icrc_mock_ledger",
+]
+resolver = "2"

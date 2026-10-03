@@ -1,0 +1,101 @@
+type LogEntry = 
+ record {
+   action_hash: text;
+   action_type: text;
+   agent_id: text;
+   caller: principal;
+   caller_hash: text;
+   entry_hash: text;
+   index: nat;
+   metadata: text;
+   prev_hash: text;
+   timestamp_ns: int;
+ };
+type HttpResponse = 
+ record {
+   body: blob;
+   headers: vec HeaderField;
+   status_code: nat16;
+   upgrade: opt bool;
+ };
+type HttpRequest = 
+ record {
+   body: blob;
+   certificate_version: opt nat16;
+   headers: vec HeaderField;
+   method: text;
+   url: text;
+ };
+type HeaderField = 
+ record {
+   text;
+   text;
+ };
+type BackupMeta = 
+ record {
+   chunk_count: nat;
+   sha: text;
+   size: nat;
+   ts_ns: int;
+   version: nat;
+ };
+service : {
+  /// Anade un auditor externo. Solo admin. El auditor NO puede ser admin
+  /// (seria confundir las fronteras: leer y gobernar son cosas distintas).
+  admin_add_auditor: (p: principal) -> (bool);
+  admin_add_writer: (p: principal) -> (bool);
+  admin_bootstrap: () -> (principal);
+  admin_freeze: () -> (bool);
+  admin_get_admin: () -> (text) query;
+  admin_list_auditors: () -> (vec principal) query;
+  admin_list_writers: () -> (vec principal) query;
+  admin_remove_auditor: (p: principal) -> (bool);
+  admin_remove_writer: (p: principal) -> (bool);
+  admin_set_read_token: (t: text) -> ();
+  /// Fija el Bearer de metadatos de backup (DISTINTO del read_token; run-2 H5).
+  admin_set_backup_token: (t: text) -> ();
+  /// Un principal puede preguntar si es auditor (util para que la UI decida
+  /// que ensenar sin filtrar la lista completa).
+  am_i_auditor: () -> (bool) query;
+  backup_abort: () -> ();
+  backup_begin: (total_chunks: nat) -> ();
+  backup_commit: (sha: text) -> (nat);
+  backup_put: (idx: nat, chunk: blob) -> ();
+  get_backup_chunk: (version: nat, idx: nat) -> (opt blob) query;
+  get_backup_version: () -> (nat) query;
+  get_entry: (i: nat) -> (opt LogEntry) query;
+  get_recent_entries: (limit: nat) -> (vec LogEntry) query;
+  get_total_count: () -> (nat) query;
+  /// Endpoint HTTP ligero (para el gateway). Rutas:
+  ///   GET /log/count            -> { count }
+  ///   GET /log/recent?n=NN      -> { entries: [...] }  (máx 200)
+  ///   GET /log/entry?i=NN       -> { entry } | 404
+  ///   GET /chain/verify         -> { ok, bad_index, total }
+  ///   GET /backup/version       -> { version }
+  ///   GET /backup/meta          -> { backups: [...] }
+  /// Todas exigen `Authorization: Bearer <read_token>`.
+  http_request: (req: HttpRequest) -> (HttpResponse);
+  list_backups: () -> (vec BackupMeta) query;
+  log_action: (agent: text, typ: text, ah: text, meta: text) -> (nat);
+  log_batch: (b: vec record {
+                       text;
+                       text;
+                       text;
+                       text;
+                     }) -> (vec nat);
+  /// Verificación de la cadena. Legible por dueno y auditores (es la primitiva
+  /// con la que un auditor comprueba que no se ha alterado nada).
+  /// C7.6.4 — el acceso al almacen de evidencia aplica control por rol y CADA
+  /// LECTURA escribe su propio registro (quien, que, cuando).
+  /// 
+  /// Es `update`, no `query`: una query no puede escribir, y una auditoria sin
+  /// rastro de quien la hizo es justo lo que la norma prohibe. El coste de un
+  /// update es el precio de que auditar deje huella.
+  log_read_access: (what: text) -> (nat);
+  /// `verify_chain` pública ELIMINADA (run-2 H6: hace trap). La vía
+  /// autorizada es `verify_chain_authorized`.
+  verify_chain: () -> (bool, text, nat, nat) query;
+  /// Verificacion de la cadena. Legible por dueno y auditores: es la primitiva
+  /// con la que un auditor comprueba que no se ha alterado nada.
+  verify_chain_authorized: () -> (bool, text, nat, nat) query;
+}

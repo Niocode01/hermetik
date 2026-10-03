@@ -1,0 +1,25 @@
+# Build / tooling
+/target/
+/.dfx/
+.pytest_cache/
+__pycache__/
+*.pyc
+node_modules/
+dist/
+.next/
+
+# DIDs generados / estado local dfx
+.canister_ids*.json
+*.did.declarations/
+
+# Entorno y secretos (nunca commitear)
+.env
+.env.*
+*.pem
+identity.json
+
+# Logs y temporales
+*.log
+/tmp/
+.DS_Store
+/app/target/
